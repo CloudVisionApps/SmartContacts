@@ -1,18 +1,16 @@
 // https://a4crypto.com/
 
-// SPDX-License-Identifier: Unlicensed
-
 pragma solidity ^0.6.12;
 
 import "./IERC20.sol";
 import "./Ownable.sol";
-import "./SafeMath.sol"; 
+import "./SafeMath.sol";
 import "./Address.sol";
 
 contract AFC is Context, IERC20, Ownable {
 
     using SafeMath for uint256;
-    using Address for address; 
+    using Address for address;
 
     mapping (address => uint256) private _rOwned;
     mapping (address => uint256) private _tOwned;
