@@ -7,7 +7,7 @@ import "./Ownable.sol";
 import "./SafeMath.sol";
 import "./Address.sol";
 
-contract AFC is Context, IERC20, Ownable {
+contract AFC is StakingToken, Context, IERC20, Ownable {
 
     using SafeMath for uint256;
     using Address for address;
