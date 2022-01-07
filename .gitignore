@@ -1,0 +1,5 @@
+/node_modules/
+/build/
+.idea/vcs.xml
+.idea/SmartContacts.iml
+.idea/modules.xml
