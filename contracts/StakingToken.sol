@@ -29,7 +29,7 @@ abstract contract StakingToken is Ownable, ERC20 {
     function createStake(uint256 _stake) public
     {
         _burn(msg.sender, _stake);
-        if(stakes[msg.sender] == 0) addStakeholder(msg.sender);
+        if(stakes[msg.sender] == 0) _addStakeholder(msg.sender);
         stakes[msg.sender] = stakes[msg.sender].add(_stake);
     }
 
@@ -40,7 +40,7 @@ abstract contract StakingToken is Ownable, ERC20 {
     function removeStake(uint256 _stake) public
     {
         stakes[msg.sender] = stakes[msg.sender].sub(_stake);
-        if(stakes[msg.sender] == 0) removeStakeholder(msg.sender);
+        if(stakes[msg.sender] == 0) _removeStakeholder(msg.sender);
         _mint(msg.sender, _stake);
     }
 
@@ -87,7 +87,7 @@ abstract contract StakingToken is Ownable, ERC20 {
      * @notice A method to add a stakeholder.
      * @param _stakeholder The stakeholder to add.
      */
-    function addStakeholder(address _stakeholder) public
+    function _addStakeholder(address _stakeholder) private
     {
         (bool _isStakeholder, ) = isStakeholder(_stakeholder);
         if(!_isStakeholder) stakeholders.push(_stakeholder);
@@ -97,7 +97,7 @@ abstract contract StakingToken is Ownable, ERC20 {
      * @notice A method to remove a stakeholder.
      * @param _stakeholder The stakeholder to remove.
      */
-    function removeStakeholder(address _stakeholder) public
+    function _removeStakeholder(address _stakeholder) private
     {
         (bool _isStakeholder, uint256 s) = isStakeholder(_stakeholder);
         if(_isStakeholder){
