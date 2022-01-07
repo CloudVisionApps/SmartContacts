@@ -1,3 +1,5 @@
+pragma solidity ^0.6.12;
+
 library Address {
     /**
      * @dev Returns true if `account` is a contract.
