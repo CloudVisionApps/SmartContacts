@@ -1,6 +1,9 @@
-const ConvertLib = artifacts.require("ConvertLib");
 const AFCToken = artifacts.require("AFCToken");
 
-module.exports = function(deployer) {
-  deployer.deploy(AFCToken);
-};
+module.exports = async function(deployer) {
+  await deployer.deploy();
+  const instance = await AFCToken.deployed();
+  if(instance) {
+    console.log("AFCToken successfully deployed.")
+  }
+}
