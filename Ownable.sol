@@ -1,6 +1,9 @@
 pragma solidity ^0.6.12;
- 
+
+import "./Context.sol";
+
 contract Ownable is Context {
+
     address private _owner;
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
