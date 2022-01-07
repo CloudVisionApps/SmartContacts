@@ -3,7 +3,7 @@ pragma solidity ^0.6.12;
 import "./Ownable.sol";
 import "./SafeMath.sol";
 
-contract StakingToken is Ownable {
+contract StakingToken {
 
     using SafeMath for uint256;
 
