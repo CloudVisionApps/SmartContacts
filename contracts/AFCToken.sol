@@ -5,13 +5,17 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./StakingToken.sol";
 
-contract AFCToken is ERC20, StakingToken {
+contract AFCToken is Context, ERC20, StakingToken {
 
-    uint256 __initialSupply = 100000;
+  /**
+   * @dev Constructor that gives _msgSender() all of existing tokens.
+   */
+  constructor () public ERC20("A4crypto", "AFC") {
+      _mint(_msgSender(), 10000 * (18 ** uint256(decimals())));
+  }
 
-    constructor() ERC20("A4crypto", "AFC") {
-        _mint(msg.sender, __initialSupply);
-    }
+  function decimals() public view virtual override returns (uint8) {
+    return 18;
+  }
 
 }
- 
