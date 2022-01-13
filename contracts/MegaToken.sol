@@ -456,7 +456,7 @@ contract BabyETHEREUMTest is ERC20, Ownable {
     }
 }
 
-contract BabyETHEREUMTestDividendTracker is Ownable, DividendPayingToken {
+contract MATICVERSEDividendTracker is Ownable, DividendPayingToken {
     using SafeMath for uint256;
     using SafeMathInt for int256;
     using IterableMapping for IterableMapping.Map;
@@ -469,24 +469,24 @@ contract BabyETHEREUMTestDividendTracker is Ownable, DividendPayingToken {
     mapping (address => uint256) public lastClaimTimes;
 
     uint256 public claimWait;
-    uint256 public immutable minimumTokenBalanceForDividends;
+    uint256 public minimumTokenBalanceForDividends;
 
     event ExcludeFromDividends(address indexed account);
     event ClaimWaitUpdated(uint256 indexed newValue, uint256 indexed oldValue);
 
     event Claim(address indexed account, uint256 amount, bool indexed automatic);
 
-    constructor() public DividendPayingToken("BabyETHEREUMTest_Dividen_Tracker", "BabyETHEREUMTest_Dividend_Tracker") {
+    constructor() public DividendPayingToken("MATICVERSE_Dividen_Tracker", "MVERSE_Dividend_Tracker") {
     	claimWait = 3600;
         minimumTokenBalanceForDividends = 200000 * (10**18); //must hold 200000+ tokens
     }
 
     function _transfer(address, address, uint256) internal override {
-        require(false, "BabyETHEREUMTest_Dividend_Tracker: No transfers allowed");
+        require(false, "MATICVERSE_Dividend_Tracker: No transfers allowed");
     }
 
     function withdrawDividend() public override {
-        require(false, "BabyETHEREUMTest_Dividend_Tracker: withdrawDividend disabled. Use the 'claim' function on the main BabyETHEREUMTest contract.");
+        require(false, "MATICVERSE_Dividend_Tracker: withdrawDividend disabled. Use the 'claim' function on the main MATICVERSE contract.");
     }
 
     function excludeFromDividends(address account) external onlyOwner {
@@ -500,8 +500,8 @@ contract BabyETHEREUMTestDividendTracker is Ownable, DividendPayingToken {
     }
 
     function updateClaimWait(uint256 newClaimWait) external onlyOwner {
-        require(newClaimWait >= 3600 && newClaimWait <= 86400, "BabyETHEREUMTest_Dividend_Tracker: claimWait must be updated to between 1 and 24 hours");
-        require(newClaimWait != claimWait, "BabyETHEREUMTest_Dividend_Tracker: Cannot update claimWait to same value");
+        require(newClaimWait >= 3600 && newClaimWait <= 86400, "MATICVERSE_Dividend_Tracker: claimWait must be updated to between 1 and 24 hours");
+        require(newClaimWait != claimWait, "MATICVERSE_Dividend_Tracker: Cannot update claimWait to same value");
         emit ClaimWaitUpdated(newClaimWait, claimWait);
         claimWait = newClaimWait;
     }
