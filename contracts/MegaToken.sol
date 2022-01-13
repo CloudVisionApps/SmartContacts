@@ -9,34 +9,47 @@ import "./IUniswapV2Factory.sol";
 import "./IUniswapV2Router.sol";
 
 
-contract BabyETHEREUMTest is ERC20, Ownable {
+contract MATICVERSE is ERC20, Ownable {
     using SafeMath for uint256;
 
     IUniswapV2Router02 public uniswapV2Router;
+    IUniswapV2Router02 public apeswapRouter;
+
     address public  uniswapV2Pair;
 
     bool private swapping;
 
-    BabyETHEREUMTestDividendTracker public dividendTracker;
+    MATICVERSEDividendTracker public dividendTracker;
 
     address public deadWallet = 0x000000000000000000000000000000000000dEaD;
 
-    address public immutable ETHEREUM = address(0x2170Ed0880ac9A755fd29B2688956BD959F933F8); //ETHEREUM
+    address public MATIC = address(0xCC42724C6683B7E57334c4E856f4c9965ED682bD); //MATIC
+    address public WBNB = address(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c);
 
     uint256 public swapTokensAtAmount = 2000000 * (10**18);
 
-    mapping(address => bool) public _isBlacklisted;
+    bool taxPause = false;
+    uint256 public _priceImpact = 2;
 
-    uint256 public ETHEREUMRewardsFee = 7;
-    uint256 public liquidityFee = 3;
-    uint256 public marketingFee = 5;
-    uint256 public totalFees = ETHEREUMRewardsFee.add(liquidityFee).add(marketingFee);
-
-    address public _marketingWalletAddress = 0x12a2FcE2506d5E7793c8404B6458E52CAdea645C;
+    uint256 public Sell_MATICRewardsFee = 5;
+    uint256 public Sell_liquidityFee = 3;
+    uint256 public Sell_marketingFee = 7;
 
 
-    // use by default 3,000,000 gas to process auto-claiming dividends
-    uint256 public gasForProcessing = 3000000;
+    uint256 public Buy_MATICRewardsFee = 4;
+    uint256 public Buy_liquidityFee = 2;
+    uint256 public Buy_marketingFee = 4;
+
+    uint256 public Sell_totalFees = Sell_MATICRewardsFee.add(Sell_liquidityFee).add(Sell_marketingFee);
+    uint256 public Buy_totalFees = Buy_MATICRewardsFee.add(Buy_liquidityFee).add(Buy_marketingFee);
+
+    bool private tradingOpen = false;
+
+    address public _marketingWalletAddress = 0x4318191Ceb90B23226a37e927f4C1769eecE4425 ;
+    address public _devWalletAddress = 0x9f85f3e817fAa6Fc4B1EA804f1Bec5863E8388df ;
+
+    // use by default 300,000 gas to process auto-claiming dividends
+    uint256 public gasForProcessing = 300000;
 
      // exlcude from fees and max transaction amount
     mapping (address => bool) private _isExcludedFromFees;
@@ -79,19 +92,20 @@ contract BabyETHEREUMTest is ERC20, Ownable {
     	address indexed processor
     );
 
-    constructor() public ERC20("BABY ETHEREUM Test", "BETT") {
+    constructor() public ERC20("MaticVerse", "Mverse") {
 
-    	dividendTracker = new BabyETHEREUMTestDividendTracker();
+        IUniswapV2Router02 _apeswapRouter = IUniswapV2Router02(0xcF0feBd3f17CEf5b47b0cD257aCf6025c5BFf3b7);
 
+    	dividendTracker = new MATICVERSEDividendTracker();
 
     	IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
          // Create a uniswap pair for this new token
         address _uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
             .createPair(address(this), _uniswapV2Router.WETH());
 
+        apeswapRouter = _apeswapRouter;
         uniswapV2Router = _uniswapV2Router;
         uniswapV2Pair = _uniswapV2Pair;
-
         _setAutomatedMarketMakerPair(_uniswapV2Pair, true);
 
         // exclude from receiving dividends
@@ -110,7 +124,7 @@ contract BabyETHEREUMTest is ERC20, Ownable {
             _mint is an internal function in ERC20.sol that is only called here,
             and CANNOT be called ever again
         */
-        _mint(owner(), 100000000000 * (10**18));
+        _mint(owner(), 200000000000 * (10**18));
     }
 
     receive() external payable {
@@ -118,11 +132,11 @@ contract BabyETHEREUMTest is ERC20, Ownable {
   	}
 
     function updateDividendTracker(address newAddress) public onlyOwner {
-        require(newAddress != address(dividendTracker), "BabyETHEREUMTest: The dividend tracker already has that address");
+        require(newAddress != address(dividendTracker), "MATICVERSE: The dividend tracker already has that address");
 
-        BabyETHEREUMTestDividendTracker newDividendTracker = BabyETHEREUMTestDividendTracker(payable(newAddress));
+        MATICVERSEDividendTracker newDividendTracker = MATICVERSEDividendTracker(payable(newAddress));
 
-        require(newDividendTracker.owner() == address(this), "BabyETHEREUMTest: The new dividend tracker must be owned by the BabyETHEREUMTest token contract");
+        require(newDividendTracker.owner() == address(this), "MATICVERSE: The new dividend tracker must be owned by the MATICVERSE token contract");
 
         newDividendTracker.excludeFromDividends(address(newDividendTracker));
         newDividendTracker.excludeFromDividends(address(this));
@@ -135,7 +149,7 @@ contract BabyETHEREUMTest is ERC20, Ownable {
     }
 
     function updateUniswapV2Router(address newAddress) public onlyOwner {
-        require(newAddress != address(uniswapV2Router), "BabyETHEREUMTest: The router already has that address");
+        require(newAddress != address(uniswapV2Router), "MATICVERSE: The router already has that address");
         emit UpdateUniswapV2Router(newAddress, address(uniswapV2Router));
         uniswapV2Router = IUniswapV2Router02(newAddress);
         address _uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory())
@@ -144,13 +158,13 @@ contract BabyETHEREUMTest is ERC20, Ownable {
     }
 
     function excludeFromFees(address account, bool excluded) public onlyOwner {
-        require(_isExcludedFromFees[account] != excluded, "BabyETHEREUMTest: Account is already the value of 'excluded'");
+        require(_isExcludedFromFees[account] != excluded, "MATICVERSE: Account is already the value of 'excluded'");
         _isExcludedFromFees[account] = excluded;
 
         emit ExcludeFromFees(account, excluded);
     }
 
-    function excludeMultipleAccountsFromFees(address[] calldata accounts, bool excluded) public onlyOwner {
+    function excludeMultipleAccountsFromFees(address[] memory accounts, bool excluded) public onlyOwner {
         for(uint256 i = 0; i < accounts.length; i++) {
             _isExcludedFromFees[accounts[i]] = excluded;
         }
@@ -162,36 +176,64 @@ contract BabyETHEREUMTest is ERC20, Ownable {
         _marketingWalletAddress = wallet;
     }
 
-    function setETHEREUMRewardsFee(uint256 value) external onlyOwner{
-        ETHEREUMRewardsFee = value;
-        totalFees = ETHEREUMRewardsFee.add(liquidityFee).add(marketingFee);
+    function setDevWallet(address payable wallet) external onlyOwner{
+        _devWalletAddress = wallet;
     }
 
-    function setLiquiditFee(uint256 value) external onlyOwner{
-        liquidityFee = value;
-        totalFees = ETHEREUMRewardsFee.add(liquidityFee).add(marketingFee);
+    function setSell_MATICRewardsFee(uint256 value) external onlyOwner{
+        Sell_MATICRewardsFee = value;
+        Sell_totalFees = Sell_MATICRewardsFee.add(Sell_liquidityFee).add(Sell_marketingFee);
     }
 
-    function setMarketingFee(uint256 value) external onlyOwner{
-        marketingFee = value;
-        totalFees = ETHEREUMRewardsFee.add(liquidityFee).add(marketingFee);
+    function setSell_LiquiditFee(uint256 value) external onlyOwner{
+        Sell_liquidityFee = value;
+        Sell_totalFees = Sell_MATICRewardsFee.add(Sell_liquidityFee).add(Sell_marketingFee);
+    }
+
+    function setSell_MarketingFee(uint256 value) external onlyOwner{
+        Sell_marketingFee = value;
+        Sell_totalFees = Sell_MATICRewardsFee.add(Sell_liquidityFee).add(Sell_marketingFee);
 
     }
+
+
+    function setBuy_MATICRewardsFee(uint256 value) external onlyOwner{
+        Buy_MATICRewardsFee = value;
+        Buy_totalFees = Buy_MATICRewardsFee.add(Buy_liquidityFee).add(Buy_marketingFee);
+    }
+
+    function setBuy_LiquiditFee(uint256 value) external onlyOwner{
+        Buy_liquidityFee = value;
+        Buy_totalFees = Buy_MATICRewardsFee.add(Buy_liquidityFee).add(Buy_marketingFee);
+    }
+
+    function setBuy_MarketingFee(uint256 value) external onlyOwner{
+        Buy_marketingFee = value;
+        Buy_totalFees = Buy_MATICRewardsFee.add(Buy_liquidityFee).add(Buy_marketingFee);
+
+    }
+
+    function TurnOn_PauseTax() external onlyOwner{
+        taxPause = true;
+
+    }
+
+    function TurnOff_PauseTax() external onlyOwner{
+        taxPause = false;
+
+    }
+
 
 
     function setAutomatedMarketMakerPair(address pair, bool value) public onlyOwner {
-        require(pair != uniswapV2Pair, "BabyETHEREUMTest: The PanETHEREUMSwap pair cannot be removed from automatedMarketMakerPairs");
+        require(pair != uniswapV2Pair, "MATICVERSE: The PancakeSwap pair cannot be removed from automatedMarketMakerPairs");
 
         _setAutomatedMarketMakerPair(pair, value);
     }
 
-    function blacklistAddress(address account, bool value) external onlyOwner{
-        _isBlacklisted[account] = value;
-    }
-
 
     function _setAutomatedMarketMakerPair(address pair, bool value) private {
-        require(automatedMarketMakerPairs[pair] != value, "BabyETHEREUMTest: Automated market maker pair is already set to that value");
+        require(automatedMarketMakerPairs[pair] != value, "MATICVERSE: Automated market maker pair is already set to that value");
         automatedMarketMakerPairs[pair] = value;
 
         if(value) {
@@ -203,8 +245,8 @@ contract BabyETHEREUMTest is ERC20, Ownable {
 
 
     function updateGasForProcessing(uint256 newValue) public onlyOwner {
-        require(newValue >= 2000000 && newValue <= 5000000, "BabyETHEREUMTest: gasForProcessing must be between 2,000,000 and 5,000,000");
-        require(newValue != gasForProcessing, "BabyETHEREUMTest: Cannot update gasForProcessing to same value");
+        require(newValue >= 200000 && newValue <= 500000, "MATICVERSE: gasForProcessing must be between 200,000 and 500,000");
+        require(newValue != gasForProcessing, "MATICVERSE: Cannot update gasForProcessing to same value");
         emit GasForProcessingUpdated(newValue, gasForProcessing);
         gasForProcessing = newValue;
     }
@@ -280,6 +322,21 @@ contract BabyETHEREUMTest is ERC20, Ownable {
         return dividendTracker.getNumberOfTokenHolders();
     }
 
+    function openTrading() public onlyOwner{
+        tradingOpen = true;
+    }
+
+    function closeTrading() public onlyOwner{
+        tradingOpen = false;
+    }
+
+    function UpdatePriceImpact(uint256 value) public onlyOwner{
+        require(_priceImpact <= 100, "max price impact must be less than or equal to 100");
+        require(_priceImpact > 0, "cant prevent sells, choose value greater than 0");
+        _priceImpact = value;
+
+
+    }
 
     function _transfer(
         address from,
@@ -288,7 +345,11 @@ contract BabyETHEREUMTest is ERC20, Ownable {
     ) internal override {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
-        require(!_isBlacklisted[from] && !_isBlacklisted[to], 'Blacklisted address');
+
+
+        if(from != owner()){
+            require (tradingOpen);
+        }
 
         if(amount == 0) {
             super._transfer(from, to, 0);
@@ -303,14 +364,39 @@ contract BabyETHEREUMTest is ERC20, Ownable {
             !swapping &&
             !automatedMarketMakerPairs[from] &&
             from != owner() &&
-            to != owner()
+            to != owner() &&
+            from == uniswapV2Pair &&
+            to != address(uniswapV2Router)
         ) {
             swapping = true;
 
-            uint256 marketingTokens = contractTokenBalance.mul(marketingFee).div(totalFees);
+            uint256 marketingTokens = contractTokenBalance.mul(Buy_marketingFee).div(Buy_totalFees);
             swapAndSendToFee(marketingTokens);
 
-            uint256 swapTokens = contractTokenBalance.mul(liquidityFee).div(totalFees);
+            uint256 swapTokens = contractTokenBalance.mul(Buy_liquidityFee).div(Buy_totalFees);
+            swapAndLiquify(swapTokens);
+
+            uint256 sellTokens = balanceOf(address(this));
+            swapAndSendDividends(sellTokens);
+
+            swapping = false;
+        }
+
+
+        if( canSwap &&
+            !swapping &&
+            !automatedMarketMakerPairs[from] &&
+            from != owner() &&
+            to != owner() &&
+            from != uniswapV2Pair
+        ) {
+            require(amount <= balanceOf(uniswapV2Pair).mul(_priceImpact).div(100));
+            swapping = true;
+
+            uint256 marketingTokens = contractTokenBalance.mul(Sell_marketingFee).div(Sell_totalFees);
+            swapAndSendToFee(marketingTokens);
+
+            uint256 swapTokens = contractTokenBalance.mul(Sell_liquidityFee).div(Sell_totalFees);
             swapAndLiquify(swapTokens);
 
             uint256 sellTokens = balanceOf(address(this));
@@ -327,14 +413,32 @@ contract BabyETHEREUMTest is ERC20, Ownable {
             takeFee = false;
         }
 
-        if(takeFee) {
-        	uint256 fees = amount.mul(totalFees).div(100);
-        	if(automatedMarketMakerPairs[to]){
-        	    fees += amount.mul(1).div(100);
-        	}
-        	amount = amount.sub(fees);
+        if(taxPause == true){
+            takeFee = false;
+        }
 
-            super._transfer(from, address(this), fees);
+        if(takeFee) {
+            if(from == uniswapV2Pair && to != address(uniswapV2Router))
+            {
+            	uint256 fees = amount.mul(Buy_totalFees).div(100);
+            	if(automatedMarketMakerPairs[to]){
+            	    fees += amount.mul(1).div(100);
+            	}
+            	amount = amount.sub(fees);
+
+                super._transfer(from, address(this), fees);
+        }
+
+            else{
+            	uint256 fees = amount.mul(Sell_totalFees).div(100);
+            	if(automatedMarketMakerPairs[to]){
+            	    fees += amount.mul(1).div(100);
+            	}
+            	amount = amount.sub(fees);
+
+                super._transfer(from, address(this), fees);
+        }
+
         }
 
         super._transfer(from, to, amount);
@@ -356,11 +460,16 @@ contract BabyETHEREUMTest is ERC20, Ownable {
 
     function swapAndSendToFee(uint256 tokens) private  {
 
-        uint256 initialETHEREUMBalance = IERC20(ETHEREUM).balanceOf(address(this));
-
-        swapTokensForETHEREUM(tokens);
-        uint256 newBalance = (IERC20(ETHEREUM).balanceOf(address(this))).sub(initialETHEREUMBalance);
-        IERC20(ETHEREUM).transfer(_marketingWalletAddress, newBalance);
+        uint256 initialMATICBalance = IERC20(MATIC).balanceOf(address(this));
+        uint256 initialBNB_Balance = address(this).balance;
+        swapTokensForEth(tokens);
+        uint256 BNB_Balance = address(this).balance.sub(initialBNB_Balance);
+        swapBNBForMatic(BNB_Balance);
+        uint256 newBalance = (IERC20(MATIC).balanceOf(address(this))).sub(initialMATICBalance);
+        uint256 feeSplit = newBalance.div(3);
+        IERC20(MATIC).transfer(_marketingWalletAddress, feeSplit);
+        IERC20(MATIC).transfer(_marketingWalletAddress, feeSplit);
+        IERC20(MATIC).transfer(_devWalletAddress, feeSplit);
     }
 
     function swapAndLiquify(uint256 tokens) private {
@@ -408,18 +517,18 @@ contract BabyETHEREUMTest is ERC20, Ownable {
 
     }
 
-    function swapTokensForETHEREUM(uint256 tokenAmount) private {
+    function swapBNBForMatic(uint256 BNB_Balance) private {
 
-        address[] memory path = new address[](3);
-        path[0] = address(this);
-        path[1] = uniswapV2Router.WETH();
-        path[2] = ETHEREUM;
 
-        _approve(address(this), address(uniswapV2Router), tokenAmount);
+        address[] memory path = new address[](2);
+        path[0] = uniswapV2Router.WETH();
+        path[1] = MATIC;
+
+
+        _approve(WBNB, address(apeswapRouter), BNB_Balance );
 
         // make the swap
-        uniswapV2Router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
-            tokenAmount,
+        apeswapRouter.swapExactETHForTokens{value: BNB_Balance}(
             0,
             path,
             address(this),
@@ -445,12 +554,15 @@ contract BabyETHEREUMTest is ERC20, Ownable {
     }
 
     function swapAndSendDividends(uint256 tokens) private{
-        swapTokensForETHEREUM(tokens);
-        uint256 dividends = IERC20(ETHEREUM).balanceOf(address(this));
-        bool success = IERC20(ETHEREUM).transfer(address(dividendTracker), dividends);
+        uint256 initialBNB_Balance = address(this).balance;
+        swapTokensForEth(tokens);
+        uint256 BNB_Balance = address(this).balance.sub(initialBNB_Balance);
+        swapBNBForMatic(BNB_Balance);
+        uint256 dividends = IERC20(MATIC).balanceOf(address(this));
+        bool success = IERC20(MATIC).transfer(address(dividendTracker), dividends);
 
         if (success) {
-            dividendTracker.distributeETHEREUMDividends(dividends);
+            dividendTracker.distributeMATICDividends(dividends);
             emit SendDividends(tokens, dividends);
         }
     }
