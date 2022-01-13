@@ -11,7 +11,7 @@ contract AFCToken is Context, ERC20, StakingToken {
    * @dev Constructor that gives _msgSender() all of existing tokens.
    */
   constructor () public ERC20("A4crypto", "AFC") {
-      _mint(_msgSender(), 10000 * (18 ** uint256(decimals())));
+      _mint(_msgSender(), 10000 * (10 ** uint256(decimals())));
   }
 
   function decimals() public view virtual override returns (uint8) {
